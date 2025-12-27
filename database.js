@@ -96,9 +96,26 @@ function createEntry(userId, code, count, comment) {
     db.run('INSERT INTO entries (user_id, code, count, comment, created_at) VALUES (?, ?, ?, ?, ?)', 
         [userId, code, count, comment || null, localDateTime]);
     save();
-    const result = db.exec('SELECT last_insert_rowid() as id');
-    const id = result[0].values[0][0];
-    return getEntryById(id);
+    
+    // Получаем последнюю вставленную запись напрямую
+    const result = db.exec(`
+        SELECT e.id, e.user_id, e.code, e.count, e.comment, e.created_at, u.name as user_name 
+        FROM entries e 
+        JOIN users u ON e.user_id = u.id 
+        ORDER BY e.id DESC LIMIT 1
+    `);
+    
+    if (result.length === 0 || result[0].values.length === 0) return null;
+    const row = result[0].values[0];
+    return { 
+        id: Number(row[0]), 
+        user_id: Number(row[1]), 
+        code: row[2], 
+        count: row[3], 
+        comment: row[4], 
+        created_at: row[5], 
+        user_name: row[6] 
+    };
 }
 
 function getEntryById(id) {
