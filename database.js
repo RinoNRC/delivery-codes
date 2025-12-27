@@ -85,8 +85,16 @@ function getAllUsers() {
 
 // Записи
 function createEntry(userId, code, count, comment) {
-    db.run('INSERT INTO entries (user_id, code, count, comment) VALUES (?, ?, ?, ?)', 
-        [userId, code, count, comment || null]);
+    const now = new Date();
+    const localDateTime = now.getFullYear() + '-' + 
+        String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+        String(now.getDate()).padStart(2, '0') + ' ' +
+        String(now.getHours()).padStart(2, '0') + ':' +
+        String(now.getMinutes()).padStart(2, '0') + ':' +
+        String(now.getSeconds()).padStart(2, '0');
+    
+    db.run('INSERT INTO entries (user_id, code, count, comment, created_at) VALUES (?, ?, ?, ?, ?)', 
+        [userId, code, count, comment || null, localDateTime]);
     save();
     const result = db.exec('SELECT last_insert_rowid() as id');
     const id = result[0].values[0][0];

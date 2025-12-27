@@ -716,9 +716,19 @@
                 document.getElementById('countInput').value = '1';
                 document.getElementById('commentInput').value = '';
                 document.querySelectorAll('.code-btn').forEach(btn => btn.classList.remove('selected'));
-                resetFilters();
-                loadWeeklyChart();
-                loadDaySummary();
+                
+                // Сбрасываем фильтры на сегодня и обновляем всё
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('selectedDate').value = today;
+                document.getElementById('codeFilter').value = '';
+                document.getElementById('userFilter').value = '';
+                document.getElementById('searchInput').value = '';
+                filters = { dateMode: 'today', startDate: today, endDate: today, code: '', userId: '', search: '' };
+                document.querySelectorAll('.filter-chip').forEach(btn => btn.classList.remove('active'));
+                
+                await loadEntries();
+                await loadWeeklyChart();
+                await loadDaySummary();
             } catch (err) { alert(err.message); }
         });
 
