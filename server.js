@@ -73,14 +73,19 @@ app.get('/api/entries', (req, res) => {
 
 app.post('/api/entries', (req, res) => {
     try {
+        console.log('POST /api/entries body:', JSON.stringify(req.body));
         const { userId, code, count, comment } = req.body;
-        if (!userId || !code) {
+        const userIdNum = parseInt(userId);
+        
+        if (!userIdNum || !code) {
+            console.log('Validation failed - userId:', userId, 'userIdNum:', userIdNum, 'code:', code);
             return res.status(400).json({ error: 'userId и code обязательны' });
         }
-        const entry = db.createEntry(userId, code, count || 1, comment);
+        const entry = db.createEntry(userIdNum, code, count || 1, comment);
+        console.log('Entry created:', entry);
         res.json(entry);
     } catch (err) {
-        console.error(err);
+        console.error('Error creating entry:', err);
         res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
