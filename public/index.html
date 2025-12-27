@@ -422,13 +422,21 @@
 
         // Init
         document.addEventListener('DOMContentLoaded', () => {
-            const saved = localStorage.getItem('deliveryUser');
-            if (saved) {
-                currentUser = JSON.parse(saved);
-                showAppScreen();
-            } else {
-                showAuthScreen();
+            try {
+                const saved = localStorage.getItem('deliveryUser');
+                if (saved) {
+                    const user = JSON.parse(saved);
+                    if (user && user.id && user.name) {
+                        currentUser = user;
+                        showAppScreen();
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.error('Error loading user:', e);
+                localStorage.removeItem('deliveryUser');
             }
+            showAuthScreen();
         });
 
         // Auth
@@ -701,6 +709,14 @@
         // Form submit
         document.getElementById('entryForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            
+            // Проверяем авторизацию
+            if (!currentUser || !currentUser.id) {
+                alert('Сессия истекла. Пожалуйста, войдите заново.');
+                logout();
+                return;
+            }
+            
             const code = document.getElementById('codeInput').value.trim();
             const count = parseInt(document.getElementById('countInput').value) || 1;
             const comment = document.getElementById('commentInput').value.trim();
