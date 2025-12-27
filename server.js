@@ -117,6 +117,36 @@ app.delete('/api/entries/today/:userId', (req, res) => {
     }
 });
 
+// ============ BACKUP ROUTES ============
+
+// Экспорт всех данных
+app.get('/api/backup/export', (req, res) => {
+    try {
+        const data = db.exportAll();
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', `attachment; filename=delivery-backup-${new Date().toISOString().split('T')[0]}.json`);
+        res.json(data);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Ошибка экспорта' });
+    }
+});
+
+// Импорт данных
+app.post('/api/backup/import', (req, res) => {
+    try {
+        const { users, entries } = req.body;
+        if (!users || !entries) {
+            return res.status(400).json({ error: 'Неверный формат данных' });
+        }
+        const result = db.importAll(users, entries);
+        res.json(result);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Ошибка импорта' });
+    }
+});
+
 // ============ STATS ROUTES ============
 
 // Статистика по дням

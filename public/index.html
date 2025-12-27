@@ -377,6 +377,15 @@
             </div>
 
             <footer class="text-center text-gray-600 text-sm py-4">
+                <div class="flex justify-center gap-4 mb-2">
+                    <button onclick="exportBackup()" class="glass-input rounded-lg px-4 py-2 text-gray-400 hover:text-green-400 hover:border-green-500/30 transition-all flex items-center gap-2">
+                        📥 Экспорт БД
+                    </button>
+                    <label class="glass-input rounded-lg px-4 py-2 text-gray-400 hover:text-blue-400 hover:border-blue-500/30 transition-all flex items-center gap-2 cursor-pointer">
+                        📤 Импорт БД
+                        <input type="file" accept=".json" onchange="importBackup(event)" class="hidden">
+                    </label>
+                </div>
                 <p>💾 Данные хранятся на сервере • SQLite база данных</p>
             </footer>
         </div>
@@ -708,6 +717,8 @@
                 document.getElementById('commentInput').value = '';
                 document.querySelectorAll('.code-btn').forEach(btn => btn.classList.remove('selected'));
                 resetFilters();
+                loadWeeklyChart();
+                loadDaySummary();
             } catch (err) { alert(err.message); }
         });
 
@@ -741,6 +752,8 @@
                 });
                 closeEditModal();
                 loadEntries();
+                loadWeeklyChart();
+                loadDaySummary();
             } catch (err) { alert(err.message); }
         });
 
@@ -752,6 +765,8 @@
                     body: JSON.stringify({ userId: currentUser.id })
                 });
                 loadEntries();
+                loadWeeklyChart();
+                loadDaySummary();
             } catch (err) { alert(err.message); }
         }
 
@@ -760,6 +775,8 @@
             try {
                 await api(`/api/entries/today/${currentUser.id}`, { method: 'DELETE' });
                 loadEntries();
+                loadWeeklyChart();
+                loadDaySummary();
             } catch (err) { alert(err.message); }
         }
 
@@ -947,6 +964,62 @@
             stopNotifications();
             originalLogout();
         };
+
+        // ============ BACKUP ============
+        async function exportBackup() {
+            try {
+                const response = await fetch('/api/backup/export');
+                const data = await response.json();
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `delivery-backup-${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                showNotification({ user_name: 'Система', code: '✅', count: 'Бэкап сохранён' });
+            } catch (err) {
+                alert('Ошибка экспорта: ' + err.message);
+            }
+        }
+
+        async function importBackup(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            if (!confirm('Импортировать данные из файла? Существующие данные не будут удалены, только добавлены новые.')) {
+                event.target.value = '';
+                return;
+            }
+            
+            try {
+                const text = await file.text();
+                const data = JSON.parse(text);
+                
+                if (!data.users || !data.entries) {
+                    throw new Error('Неверный формат файла');
+                }
+                
+                const result = await api('/api/backup/import', {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+                
+                alert(`Импорт завершён!\nПользователей: ${result.usersImported}\nЗаписей: ${result.entriesImported}`);
+                
+                // Обновляем данные
+                await loadUsers();
+                await loadEntries();
+                await loadWeeklyChart();
+                await loadDaySummary();
+            } catch (err) {
+                alert('Ошибка импорта: ' + err.message);
+            }
+            
+            event.target.value = '';
+        }
     </script>
 </body>
 </html>
