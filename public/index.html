@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delivery Codes - Система учёта кодов доставки</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        body {
+            background: linear-gradient(135deg, #030712 0%, #0a1628 50%, #020617 100%);
+            min-height: 100vh;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+        .glass-input {
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        .glass-input:focus {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(59, 130, 246, 0.5);
+            box-shadow: 0 0 25px rgba(59, 130, 246, 0.2);
+        }
+        .glass-input::placeholder { color: rgba(255, 255, 255, 0.3); }
+        .code-btn { transition: all 0.3s ease; }
+        .code-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(59, 130, 246, 0.3);
+        }
+        .code-btn.selected {
+            background: linear-gradient(135deg, #1d4ed8, #1e40af);
+            border-color: #3b82f6;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+        }
+        .glow { box-shadow: 0 0 60px rgba(59, 130, 246, 0.15); }
+        .glow-purple { box-shadow: 0 0 60px rgba(139, 92, 246, 0.15); }
+        .table-row { transition: all 0.3s ease; }
+        .table-row:hover { background: rgba(255, 255, 255, 0.05); }
+        .floating-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.15;
+            pointer-events: none;
+            z-index: -1;
+        }
+        .orb-1 { width: 500px; height: 500px; background: #1d4ed8; top: -150px; right: -150px; }
+        .orb-2 { width: 400px; height: 400px; background: #7c3aed; bottom: -100px; left: -100px; }
+        .orb-3 { width: 300px; height: 300px; background: #0891b2; top: 40%; left: 30%; }
+        .animate-slide-up { animation: slideUp 0.6s ease forwards; }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .stat-card { transition: all 0.3s ease; }
+        .stat-card:hover { transform: scale(1.02); background: rgba(255, 255, 255, 0.06); }
+        .btn-primary {
+            background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            box-shadow: 0 10px 30px rgba(37, 99, 235, 0.3);
+        }
+        .login-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .tab-btn { transition: all 0.3s ease; }
+        .tab-btn.active { background: rgba(255, 255, 255, 0.1); border-color: rgba(59, 130, 246, 0.5); }
+        .user-badge { background: linear-gradient(135deg, #1e40af 0%, #7c3aed 100%); }
+        .modal-overlay { background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(5px); }
+        .modal-content {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+        .filter-chip { transition: all 0.2s ease; }
+        .filter-chip:hover { background: rgba(255, 255, 255, 0.1); }
+        .filter-chip.active { background: rgba(59, 130, 246, 0.3); border-color: rgba(59, 130, 246, 0.5); }
+        .date-nav-btn { transition: all 0.2s ease; }
+        .date-nav-btn:hover { background: rgba(255, 255, 255, 0.1); transform: scale(1.1); }
+        .scrollbar-custom::-webkit-scrollbar { width: 6px; }
+        .scrollbar-custom::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.02); }
+        .scrollbar-custom::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 3px; }
+        
+        /* Notifications */
+        .notification {
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .notification-exit {
+            animation: slideOut 0.3s ease forwards;
+        }
+        @keyframes slideOut {
+            to { transform: translateX(100%); opacity: 0; }
+        }
+        
+        /* Chart bars */
+        .chart-bar {
+            transition: height 0.5s ease;
+        }
+    </style>
+</head>
+<body class="text-white">
+    <div class="floating-orb orb-1"></div>
+    <div class="floating-orb orb-2"></div>
+    <div class="floating-orb orb-3"></div>
+    
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
+        <div class="modal-content rounded-2xl p-6 w-full max-w-md animate-slide-up">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-gray-100">✏️ Редактировать запись</h3>
+                <button onclick="closeEditModal()" class="text-gray-500 hover:text-white text-2xl">&times;</button>
+            </div>
+            <form id="editForm" class="space-y-4">
+                <input type="hidden" id="editEntryId">
+                <div>
+                    <label class="text-gray-400 text-sm mb-2 block">Код</label>
+                    <input type="text" id="editCodeInput" class="glass-input rounded-xl px-4 py-3 w-full text-white outline-none" required>
+                </div>
+                <div>
+                    <label class="text-gray-400 text-sm mb-2 block">Количество</label>
+                    <input type="number" id="editCountInput" min="1" class="glass-input rounded-xl px-4 py-3 w-full text-white outline-none" required>
+                </div>
+                <div>
+                    <label class="text-gray-400 text-sm mb-2 block">Комментарий</label>
+                    <input type="text" id="editCommentInput" class="glass-input rounded-xl px-4 py-3 w-full text-white outline-none">
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="closeEditModal()" class="flex-1 glass-input rounded-xl py-3 font-medium hover:bg-white/10">Отмена</button>
+                    <button type="submit" class="flex-1 btn-primary rounded-xl py-3 font-semibold">💾 Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Auth Screen -->
+    <div id="authScreen" class="min-h-screen flex items-center justify-center p-4">
+        <div class="login-card rounded-3xl p-8 w-full max-w-md animate-slide-up glow-purple">
+            <div class="text-center mb-8">
+                <div class="text-5xl mb-4">📦</div>
+                <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">Delivery Codes</h1>
+                <p class="text-gray-500 text-sm mt-2">Система учёта кодов доставки</p>
+            </div>
+            
+            <div class="flex gap-2 mb-6">
+                <button onclick="switchAuthTab('login')" id="loginTab" class="tab-btn active flex-1 glass-input rounded-xl py-3 font-medium">Вход</button>
+                <button onclick="switchAuthTab('register')" id="registerTab" class="tab-btn flex-1 glass-input rounded-xl py-3 font-medium">Регистрация</button>
+            </div>
+            
+            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="text-gray-400 text-sm mb-2 block">Логин</label>
+                    <input type="text" id="loginUsername" placeholder="Введите логин" class="glass-input rounded-xl px-4 py-3 w-full text-white outline-none" required>
+                </div>
+                <div>
+                    <label class="text-gray-400 text-sm mb-2 block">Пароль</label>
+                    <input type="password" id="loginPassword" placeholder="Введите пароль" class="glass-input rounded-xl px-4 py-3 w-full text-white outline-none" required>
+                </div>
+                <div id="loginError" class="text-red-400 text-sm hidden"></div>
+                <button type="submit" class="btn-primary w-full rounded-xl py-3 font-semibold mt-6">Войти</button>
+            </form>
+            
+            <form id="registerForm" onsubmit="handleRegister(event)" class="space-y-4 hidden">
+                <div>
+                    <label class="text-gray-400 text-sm mb-2 block">Имя</label>
+                    <input type="text" id="registerName" placeholder="Ваше имя" class="glass-input rounded-xl px-4 py-3 w-full text-white outline-none" required>
+                </div>
+                <div>
+                    <label class="text-gray-400 text-sm mb-2 block">Логин</label>
+                    <input type="text" id="registerUsername" placeholder="Придумайте логин" class="glass-input rounded-xl px-4 py-3 w-full text-white outline-none" required>
+                </div>
+                <div>
+                    <label class="text-gray-400 text-sm mb-2 block">Пароль</label>
+                    <input type="password" id="registerPassword" placeholder="Придумайте пароль" class="glass-input rounded-xl px-4 py-3 w-full text-white outline-none" required>
+                </div>
+                <div>
+                    <label class="text-gray-400 text-sm mb-2 block">Повторите пароль</label>
+                    <input type="password" id="registerPasswordConfirm" placeholder="Повторите пароль" class="glass-input rounded-xl px-4 py-3 w-full text-white outline-none" required>
+                </div>
+                <div id="registerError" class="text-red-400 text-sm hidden"></div>
+                <button type="submit" class="btn-primary w-full rounded-xl py-3 font-semibold mt-6">Зарегистрироваться</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App Screen -->
+    <div id="appScreen" class="hidden p-4 md:p-8">
+        <div class="max-w-6xl mx-auto">
+            <!-- Header -->
+            <header class="glass-card rounded-2xl p-6 mb-6 glow">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                        <h1 class="text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">📦 Delivery Codes</h1>
+                        <p class="text-gray-500 mt-1">Система учёта кодов доставки</p>
+                    </div>
+                    <div class="flex items-center gap-4 flex-wrap">
+                        <div class="glass px-4 py-2 rounded-xl">
+                            <span class="text-gray-500 text-sm">Сегодня:</span>
+                            <span id="currentDate" class="ml-2 font-semibold text-blue-400"></span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="user-badge px-4 py-2 rounded-xl flex items-center gap-2">
+                                <span>👤</span>
+                                <span id="currentUserName" class="font-medium"></span>
+                            </div>
+                            <button onclick="logout()" class="glass-input hover:bg-red-500/20 hover:border-red-500/30 rounded-xl px-4 py-2 text-gray-400 hover:text-red-400 transition-all">Выйти</button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Quick Code Buttons -->
+            <div class="glass-card rounded-2xl p-6 mb-6">
+                <h2 class="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-200"><span>🏷️</span> Быстрый выбор кода</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3" id="codeButtons"></div>
+            </div>
+
+            <!-- Add Entry Form -->
+            <div class="glass-card rounded-2xl p-6 mb-6">
+                <h2 class="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-200"><span>📝</span> Добавить запись</h2>
+                <form id="entryForm" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="text-gray-500 text-sm mb-2 block">Код</label>
+                        <input type="text" id="codeInput" placeholder="Например: 08" class="glass-input rounded-xl px-4 py-3 w-full text-white outline-none" required>
+                    </div>
+                    <div>
+                        <label class="text-gray-500 text-sm mb-2 block">Количество</label>
+                        <input type="number" id="countInput" placeholder="1" min="1" value="1" class="glass-input rounded-xl px-4 py-3 w-full text-white outline-none" required>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="text-gray-500 text-sm mb-2 block">Комментарий (опционально)</label>
+                        <input type="text" id="commentInput" placeholder="Дополнительная информация..." class="glass-input rounded-xl px-4 py-3 w-full text-white outline-none">
+                    </div>
+                    <div class="md:col-span-4">
+                        <button type="submit" class="btn-primary w-full rounded-xl px-6 py-3 font-semibold">✅ Добавить запись</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Statistics -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="glass-card stat-card rounded-2xl p-5">
+                    <div class="text-3xl font-bold text-blue-400" id="statTotal">0</div>
+                    <div class="text-gray-500 text-sm mt-1">Всего записей</div>
+                </div>
+                <div class="glass-card stat-card rounded-2xl p-5">
+                    <div class="text-3xl font-bold text-orange-400" id="statCode08">0</div>
+                    <div class="text-gray-500 text-sm mt-1">Код 08</div>
+                </div>
+                <div class="glass-card stat-card rounded-2xl p-5">
+                    <div class="text-3xl font-bold text-red-400" id="statCode03">0</div>
+                    <div class="text-gray-500 text-sm mt-1">Код 03</div>
+                </div>
+                <div class="glass-card stat-card rounded-2xl p-5">
+                    <div class="text-3xl font-bold text-green-400" id="statCode17">0</div>
+                    <div class="text-gray-500 text-sm mt-1">Код 17</div>
+                </div>
+            </div>
+
+            <!-- Charts & Summary Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <!-- Weekly Chart -->
+                <div class="glass-card rounded-2xl p-6">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-200">
+                        <span>📊</span> Статистика за неделю
+                    </h2>
+                    <div class="h-48 flex items-end justify-between gap-2" id="weeklyChart">
+                        <!-- Generated by JS -->
+                    </div>
+                    <div class="flex justify-between mt-2 text-xs text-gray-500" id="weeklyLabels"></div>
+                </div>
+
+                <!-- Day Summary -->
+                <div class="glass-card rounded-2xl p-6">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-200">
+                        <span>📋</span> Сводка бригады за сегодня
+                    </h2>
+                    <div class="space-y-3 max-h-48 overflow-y-auto scrollbar-custom" id="daySummary">
+                        <!-- Generated by JS -->
+                    </div>
+                    <div id="summaryEmpty" class="text-center text-gray-600 py-8 hidden">
+                        <div class="text-3xl mb-2 opacity-50">📭</div>
+                        <p class="text-sm">Пока нет записей</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notifications Container -->
+            <div id="notifications" class="fixed top-4 right-4 z-40 space-y-2 max-w-sm"></div>
+
+            <!-- Filters -->
+            <div class="glass-card rounded-2xl p-6 mb-6">
+                <h2 class="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-200"><span>📅</span> История и фильтры</h2>
+                <div class="flex flex-wrap items-center gap-4 mb-4">
+                    <div class="flex items-center gap-2">
+                        <button onclick="changeDate(-1)" class="date-nav-btn glass-input rounded-lg p-2 text-gray-400">◀</button>
+                        <input type="date" id="selectedDate" class="glass-input rounded-xl px-4 py-2 text-white outline-none cursor-pointer" onchange="applyFilters()">
+                        <button onclick="changeDate(1)" class="date-nav-btn glass-input rounded-lg p-2 text-gray-400">▶</button>
+                    </div>
+                    <div class="flex gap-2 flex-wrap">
+                        <button onclick="setQuickDate('today')" class="filter-chip glass-input rounded-lg px-3 py-2 text-sm text-gray-300">Сегодня</button>
+                        <button onclick="setQuickDate('yesterday')" class="filter-chip glass-input rounded-lg px-3 py-2 text-sm text-gray-300">Вчера</button>
+                        <button onclick="setQuickDate('week')" class="filter-chip glass-input rounded-lg px-3 py-2 text-sm text-gray-300">Неделя</button>
+                        <button onclick="setQuickDate('all')" class="filter-chip glass-input rounded-lg px-3 py-2 text-sm text-gray-300">Всё время</button>
+                    </div>
+                </div>
+                <div class="flex flex-wrap items-center gap-4">
+                    <div class="flex-1 min-w-[200px]">
+                        <input type="text" id="searchInput" placeholder="🔍 Поиск по комментарию..." class="glass-input rounded-xl px-4 py-2 w-full text-white outline-none text-sm" oninput="applyFilters()">
+                    </div>
+                    <select id="codeFilter" class="glass-input rounded-xl px-4 py-2 text-white outline-none text-sm cursor-pointer" onchange="applyFilters()">
+                        <option value="">Все коды</option>
+                    </select>
+                    <select id="userFilter" class="glass-input rounded-xl px-4 py-2 text-white outline-none text-sm cursor-pointer" onchange="applyFilters()">
+                        <option value="">Все курьеры</option>
+                    </select>
+                    <button onclick="resetFilters()" class="glass-input rounded-xl px-4 py-2 text-gray-400 hover:text-white text-sm">✕ Сбросить</button>
+                </div>
+            </div>
+
+            <!-- Entries Table -->
+            <div class="glass-card rounded-2xl p-6 mb-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                    <h2 class="text-lg font-semibold flex items-center gap-2 text-gray-200">
+                        <span>📋</span> <span id="entriesTitle">Записи за сегодня</span>
+                        <span id="entriesCount" class="text-sm font-normal text-gray-500 ml-2"></span>
+                    </h2>
+                    <div class="flex items-center gap-3">
+                        <div class="flex gap-2">
+                            <button onclick="setViewMode('my')" id="viewMyBtn" class="tab-btn active glass-input rounded-xl px-4 py-2 text-sm font-medium">Мои записи</button>
+                            <button onclick="setViewMode('all')" id="viewAllBtn" class="tab-btn glass-input rounded-xl px-4 py-2 text-sm font-medium">Вся бригада</button>
+                        </div>
+                        <button onclick="clearMyTodayEntries()" class="text-red-400 hover:text-red-300 text-sm flex items-center gap-1">🗑️ Очистить мои</button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto scrollbar-custom">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="text-left text-gray-500 text-sm border-b border-white/5">
+                                <th class="pb-3 px-2">Дата</th>
+                                <th class="pb-3 px-2">Время</th>
+                                <th class="pb-3 px-2">Курьер</th>
+                                <th class="pb-3 px-2">Код</th>
+                                <th class="pb-3 px-2">Кол-во</th>
+                                <th class="pb-3 px-2">Комментарий</th>
+                                <th class="pb-3 px-2 text-right">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="entriesTable"></tbody>
+                    </table>
+                    <div id="emptyState" class="text-center text-gray-600 py-12 hidden">
+                        <div class="text-5xl mb-3 opacity-50">📭</div>
+                        <p>Нет записей по выбранным фильтрам</p>
+                    </div>
+                </div>
+            </div>
+
+            <footer class="text-center text-gray-600 text-sm py-4">
+                <p>💾 Данные хранятся на сервере • SQLite база данных</p>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        const DELIVERY_CODES = [
+            { code: '08', name: 'Отсутствие получателя', color: 'orange' },
+            { code: '03', name: 'Неправильный адрес', color: 'red' },
+            { code: '17', name: 'Согласованная дата', color: 'green' },
+            { code: '01', name: 'Отказ от заказа', color: 'pink' },
+            { code: '05', name: 'Неполная оплата', color: 'yellow' },
+            { code: '10', name: 'Повреждённый товар', color: 'purple' },
+            { code: '12', name: 'Недозвон', color: 'cyan' },
+            { code: '15', name: 'Другое', color: 'gray' }
+        ];
+
+        let currentUser = null;
+        let allUsers = [];
+        let entries = [];
+        let viewMode = 'my';
+        let filters = { dateMode: 'today', startDate: null, endDate: null, code: '', userId: '', search: '' };
+
+        // API helpers
+        async function api(url, options = {}) {
+            const res = await fetch(url, {
+                ...options,
+                headers: { 'Content-Type': 'application/json', ...options.headers }
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Ошибка сервера');
+            return data;
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            const saved = localStorage.getItem('deliveryUser');
+            if (saved) {
+                currentUser = JSON.parse(saved);
+                showAppScreen();
+            } else {
+                showAuthScreen();
+            }
+        });
+
+        // Auth
+        function switchAuthTab(tab) {
+            document.getElementById('loginTab').classList.toggle('active', tab === 'login');
+            document.getElementById('registerTab').classList.toggle('active', tab === 'register');
+            document.getElementById('loginForm').classList.toggle('hidden', tab !== 'login');
+            document.getElementById('registerForm').classList.toggle('hidden', tab === 'login');
+            document.getElementById('loginError').classList.add('hidden');
+            document.getElementById('registerError').classList.add('hidden');
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const errorEl = document.getElementById('loginError');
+            try {
+                const { user } = await api('/api/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        username: document.getElementById('loginUsername').value.trim(),
+                        password: document.getElementById('loginPassword').value
+                    })
+                });
+                currentUser = user;
+                localStorage.setItem('deliveryUser', JSON.stringify(user));
+                showAppScreen();
+            } catch (err) {
+                errorEl.textContent = err.message;
+                errorEl.classList.remove('hidden');
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const errorEl = document.getElementById('registerError');
+            const password = document.getElementById('registerPassword').value;
+            const confirm = document.getElementById('registerPasswordConfirm').value;
+            
+            if (password !== confirm) {
+                errorEl.textContent = 'Пароли не совпадают';
+                errorEl.classList.remove('hidden');
+                return;
+            }
+            
+            try {
+                const { user } = await api('/api/auth/register', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        name: document.getElementById('registerName').value.trim(),
+                        username: document.getElementById('registerUsername').value.trim(),
+                        password
+                    })
+                });
+                currentUser = user;
+                localStorage.setItem('deliveryUser', JSON.stringify(user));
+                showAppScreen();
+            } catch (err) {
+                errorEl.textContent = err.message;
+                errorEl.classList.remove('hidden');
+            }
+        }
+
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('deliveryUser');
+            showAuthScreen();
+        }
+
+        function showAuthScreen() {
+            document.getElementById('authScreen').classList.remove('hidden');
+            document.getElementById('appScreen').classList.add('hidden');
+            switchAuthTab('login');
+        }
+
+        async function showAppScreen() {
+            document.getElementById('authScreen').classList.add('hidden');
+            document.getElementById('appScreen').classList.remove('hidden');
+            document.getElementById('currentUserName').textContent = currentUser.name;
+            
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('selectedDate').value = today;
+            filters.startDate = filters.endDate = today;
+            
+            updateCurrentDate();
+            renderCodeButtons();
+            renderCodeFilter();
+            await loadUsers();
+            await loadEntries();
+        }
+
+        function updateCurrentDate() {
+            const now = new Date();
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+        }
+
+        async function loadUsers() {
+            try {
+                allUsers = await api('/api/users');
+                renderUserFilter();
+            } catch (err) { console.error(err); }
+        }
+
+        async function loadEntries() {
+            try {
+                const params = new URLSearchParams();
+                if (viewMode === 'my') params.append('userId', currentUser.id);
+                else if (filters.userId) params.append('userId', filters.userId);
+                if (filters.code) params.append('code', filters.code);
+                if (filters.startDate) params.append('startDate', filters.startDate);
+                if (filters.endDate) params.append('endDate', filters.endDate);
+                if (filters.search) params.append('search', filters.search);
+                
+                entries = await api(`/api/entries?${params}`);
+                renderEntries();
+                updateStats();
+            } catch (err) { console.error(err); }
+        }
+
+        function renderCodeButtons() {
+            document.getElementById('codeButtons').innerHTML = DELIVERY_CODES.map(dc => `
+                <button type="button" onclick="selectCode('${dc.code}')" class="code-btn glass-input rounded-xl p-4 text-left hover:bg-white/10" data-code="${dc.code}">
+                    <div class="text-xl font-bold text-${dc.color}-400">${dc.code}</div>
+                    <div class="text-xs text-gray-500 mt-1">${dc.name}</div>
+                </button>
+            `).join('');
+        }
+
+        function renderCodeFilter() {
+            document.getElementById('codeFilter').innerHTML = '<option value="">Все коды</option>' + 
+                DELIVERY_CODES.map(dc => `<option value="${dc.code}">${dc.code} - ${dc.name}</option>`).join('');
+        }
+
+        function renderUserFilter() {
+            document.getElementById('userFilter').innerHTML = '<option value="">Все курьеры</option>' + 
+                allUsers.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
+        }
+
+        function selectCode(code) {
+            document.getElementById('codeInput').value = code;
+            document.querySelectorAll('.code-btn').forEach(btn => {
+                btn.classList.toggle('selected', btn.dataset.code === code);
+            });
+        }
+
+        function setViewMode(mode) {
+            viewMode = mode;
+            document.getElementById('viewMyBtn').classList.toggle('active', mode === 'my');
+            document.getElementById('viewAllBtn').classList.toggle('active', mode === 'all');
+            loadEntries();
+        }
+
+        function changeDate(delta) {
+            const input = document.getElementById('selectedDate');
+            const date = new Date(input.value);
+            date.setDate(date.getDate() + delta);
+            input.value = date.toISOString().split('T')[0];
+            filters.dateMode = 'custom';
+            applyFilters();
+        }
+
+        function setQuickDate(mode) {
+            filters.dateMode = mode;
+            const today = new Date();
+            const input = document.getElementById('selectedDate');
+            
+            if (mode === 'today') {
+                input.value = today.toISOString().split('T')[0];
+                filters.startDate = filters.endDate = input.value;
+            } else if (mode === 'yesterday') {
+                const d = new Date(today); d.setDate(d.getDate() - 1);
+                input.value = d.toISOString().split('T')[0];
+                filters.startDate = filters.endDate = input.value;
+            } else if (mode === 'week') {
+                const d = new Date(today); d.setDate(d.getDate() - 7);
+                filters.startDate = d.toISOString().split('T')[0];
+                filters.endDate = today.toISOString().split('T')[0];
+            } else if (mode === 'all') {
+                filters.startDate = null;
+                filters.endDate = null;
+            }
+            
+            document.querySelectorAll('.filter-chip').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            loadEntries();
+        }
+
+        function applyFilters() {
+            filters.code = document.getElementById('codeFilter').value;
+            filters.userId = document.getElementById('userFilter').value;
+            filters.search = document.getElementById('searchInput').value;
+            
+            if (['custom', 'today', 'yesterday'].includes(filters.dateMode)) {
+                const date = document.getElementById('selectedDate').value;
+                filters.startDate = filters.endDate = date;
+            }
+            loadEntries();
+        }
+
+        function resetFilters() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('selectedDate').value = today;
+            document.getElementById('codeFilter').value = '';
+            document.getElementById('userFilter').value = '';
+            document.getElementById('searchInput').value = '';
+            filters = { dateMode: 'today', startDate: today, endDate: today, code: '', userId: '', search: '' };
+            document.querySelectorAll('.filter-chip').forEach(btn => btn.classList.remove('active'));
+            loadEntries();
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            const today = new Date().toISOString().split('T')[0];
+            const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+            if (dateStr.split('T')[0] === today) return 'Сегодня';
+            if (dateStr.split('T')[0] === yesterday.toISOString().split('T')[0]) return 'Вчера';
+            return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+        }
+
+        function formatTime(dateStr) {
+            return new Date(dateStr).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function renderEntries() {
+            const table = document.getElementById('entriesTable');
+            const empty = document.getElementById('emptyState');
+            const countEl = document.getElementById('entriesCount');
+            
+            const total = entries.reduce((sum, e) => sum + e.count, 0);
+            countEl.textContent = `(${entries.length} записей, ${total} шт.)`;
+            
+            if (entries.length === 0) {
+                table.innerHTML = '';
+                empty.classList.remove('hidden');
+                return;
+            }
+            empty.classList.add('hidden');
+            
+            table.innerHTML = entries.map(e => {
+                const codeInfo = DELIVERY_CODES.find(c => c.code === e.code);
+                const color = codeInfo ? codeInfo.color : 'blue';
+                const isOwn = e.user_id === currentUser.id;
+                return `
+                    <tr class="table-row border-b border-white/5">
+                        <td class="py-3 px-2 text-gray-500 text-sm">${formatDate(e.created_at)}</td>
+                        <td class="py-3 px-2 text-gray-500">${formatTime(e.created_at)}</td>
+                        <td class="py-3 px-2 ${isOwn ? 'text-blue-400' : 'text-gray-300'}">${e.user_name}</td>
+                        <td class="py-3 px-2"><span class="inline-block bg-${color}-500/20 text-${color}-400 px-3 py-1 rounded-lg font-medium">${e.code}</span></td>
+                        <td class="py-3 px-2 font-semibold text-gray-200">${e.count}</td>
+                        <td class="py-3 px-2 text-gray-500 text-sm max-w-[200px] truncate">${e.comment || '—'}</td>
+                        <td class="py-3 px-2 text-right">
+                            ${isOwn ? `
+                                <button onclick="openEditModal(${e.id})" class="text-blue-400 hover:text-blue-300 mr-2">✏️</button>
+                                <button onclick="deleteEntry(${e.id})" class="text-red-400 hover:text-red-300">🗑️</button>
+                            ` : ''}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function updateStats() {
+            const myEntries = entries.filter(e => e.user_id === currentUser.id);
+            document.getElementById('statTotal').textContent = myEntries.reduce((s, e) => s + e.count, 0);
+            document.getElementById('statCode08').textContent = myEntries.filter(e => e.code === '08').reduce((s, e) => s + e.count, 0);
+            document.getElementById('statCode03').textContent = myEntries.filter(e => e.code === '03').reduce((s, e) => s + e.count, 0);
+            document.getElementById('statCode17').textContent = myEntries.filter(e => e.code === '17').reduce((s, e) => s + e.count, 0);
+        }
+
+        // Form submit
+        document.getElementById('entryForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const code = document.getElementById('codeInput').value.trim();
+            const count = parseInt(document.getElementById('countInput').value) || 1;
+            const comment = document.getElementById('commentInput').value.trim();
+            
+            if (!code) return alert('Введите код');
+            
+            try {
+                await api('/api/entries', {
+                    method: 'POST',
+                    body: JSON.stringify({ userId: currentUser.id, code, count, comment })
+                });
+                document.getElementById('codeInput').value = '';
+                document.getElementById('countInput').value = '1';
+                document.getElementById('commentInput').value = '';
+                document.querySelectorAll('.code-btn').forEach(btn => btn.classList.remove('selected'));
+                resetFilters();
+            } catch (err) { alert(err.message); }
+        });
+
+        // Edit modal
+        function openEditModal(id) {
+            const entry = entries.find(e => e.id === id);
+            if (!entry) return;
+            document.getElementById('editEntryId').value = id;
+            document.getElementById('editCodeInput').value = entry.code;
+            document.getElementById('editCountInput').value = entry.count;
+            document.getElementById('editCommentInput').value = entry.comment || '';
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+        }
+
+        document.getElementById('editForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('editEntryId').value;
+            try {
+                await api(`/api/entries/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        userId: currentUser.id,
+                        code: document.getElementById('editCodeInput').value,
+                        count: parseInt(document.getElementById('editCountInput').value),
+                        comment: document.getElementById('editCommentInput').value
+                    })
+                });
+                closeEditModal();
+                loadEntries();
+            } catch (err) { alert(err.message); }
+        });
+
+        async function deleteEntry(id) {
+            if (!confirm('Удалить запись?')) return;
+            try {
+                await api(`/api/entries/${id}`, {
+                    method: 'DELETE',
+                    body: JSON.stringify({ userId: currentUser.id })
+                });
+                loadEntries();
+            } catch (err) { alert(err.message); }
+        }
+
+        async function clearMyTodayEntries() {
+            if (!confirm('Удалить все ваши записи за сегодня?')) return;
+            try {
+                await api(`/api/entries/today/${currentUser.id}`, { method: 'DELETE' });
+                loadEntries();
+            } catch (err) { alert(err.message); }
+        }
+
+        // ============ CHARTS ============
+        async function loadWeeklyChart() {
+            const today = new Date();
+            const weekAgo = new Date(today);
+            weekAgo.setDate(weekAgo.getDate() - 6);
+            
+            try {
+                const stats = await api(`/api/stats/days?startDate=${weekAgo.toISOString().split('T')[0]}&endDate=${today.toISOString().split('T')[0]}&userId=${currentUser.id}`);
+                renderWeeklyChart(stats, weekAgo, today);
+            } catch (err) { console.error(err); }
+        }
+
+        function renderWeeklyChart(stats, startDate, endDate) {
+            const container = document.getElementById('weeklyChart');
+            const labelsContainer = document.getElementById('weeklyLabels');
+            
+            // Группируем по дням
+            const days = [];
+            const current = new Date(startDate);
+            while (current <= endDate) {
+                days.push(current.toISOString().split('T')[0]);
+                current.setDate(current.getDate() + 1);
+            }
+            
+            // Считаем суммы по дням
+            const dayTotals = days.map(day => {
+                return stats.filter(s => s.date === day).reduce((sum, s) => sum + s.total, 0);
+            });
+            
+            const maxVal = Math.max(...dayTotals, 1);
+            
+            container.innerHTML = days.map((day, i) => {
+                const height = (dayTotals[i] / maxVal) * 100;
+                const isToday = day === new Date().toISOString().split('T')[0];
+                return `
+                    <div class="flex-1 flex flex-col items-center">
+                        <div class="text-xs text-gray-400 mb-1">${dayTotals[i]}</div>
+                        <div class="w-full bg-white/5 rounded-t-lg relative" style="height: 140px;">
+                            <div class="chart-bar absolute bottom-0 w-full rounded-t-lg ${isToday ? 'bg-gradient-to-t from-blue-600 to-blue-400' : 'bg-gradient-to-t from-purple-600 to-purple-400'}" 
+                                style="height: ${height}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            labelsContainer.innerHTML = days.map(day => {
+                const d = new Date(day);
+                const isToday = day === new Date().toISOString().split('T')[0];
+                return `<span class="${isToday ? 'text-blue-400 font-medium' : ''}">${d.toLocaleDateString('ru-RU', { weekday: 'short' })}</span>`;
+            }).join('');
+        }
+
+        // ============ DAY SUMMARY ============
+        async function loadDaySummary() {
+            const today = new Date().toISOString().split('T')[0];
+            try {
+                const summary = await api(`/api/stats/summary/${today}`);
+                renderDaySummary(summary);
+            } catch (err) { console.error(err); }
+        }
+
+        function renderDaySummary(summary) {
+            const container = document.getElementById('daySummary');
+            const empty = document.getElementById('summaryEmpty');
+            
+            if (summary.length === 0) {
+                container.innerHTML = '';
+                empty.classList.remove('hidden');
+                return;
+            }
+            empty.classList.add('hidden');
+            
+            // Группируем по курьерам
+            const byUser = {};
+            summary.forEach(s => {
+                if (!byUser[s.name]) byUser[s.name] = [];
+                byUser[s.name].push(s);
+            });
+            
+            container.innerHTML = Object.entries(byUser).map(([name, codes]) => {
+                const total = codes.reduce((sum, c) => sum + c.total, 0);
+                const isMe = name === currentUser.name;
+                return `
+                    <div class="glass-input rounded-xl p-3 ${isMe ? 'border-blue-500/30' : ''}">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="${isMe ? 'text-blue-400' : 'text-gray-300'} font-medium">${name}</span>
+                            <span class="text-gray-400 text-sm">${total} шт.</span>
+                        </div>
+                        <div class="flex flex-wrap gap-1">
+                            ${codes.map(c => {
+                                const codeInfo = DELIVERY_CODES.find(dc => dc.code === c.code);
+                                const color = codeInfo ? codeInfo.color : 'gray';
+                                return `<span class="text-xs bg-${color}-500/20 text-${color}-400 px-2 py-1 rounded">${c.code}: ${c.total}</span>`;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ============ NOTIFICATIONS ============
+        let lastEntryId = 0;
+        let notificationInterval = null;
+
+        function startNotifications() {
+            // Получаем последний ID
+            if (entries.length > 0) {
+                lastEntryId = Math.max(...entries.map(e => e.id));
+            }
+            
+            // Проверяем каждые 10 секунд
+            notificationInterval = setInterval(checkNewEntries, 10000);
+        }
+
+        function stopNotifications() {
+            if (notificationInterval) {
+                clearInterval(notificationInterval);
+                notificationInterval = null;
+            }
+        }
+
+        async function checkNewEntries() {
+            try {
+                const newEntries = await api(`/api/notifications?sinceId=${lastEntryId}&userId=${currentUser.id}`);
+                
+                newEntries.forEach(entry => {
+                    showNotification(entry);
+                    if (entry.id > lastEntryId) lastEntryId = entry.id;
+                });
+                
+                // Обновляем данные если есть новые записи
+                if (newEntries.length > 0) {
+                    loadEntries();
+                    loadDaySummary();
+                    loadWeeklyChart();
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        function showNotification(entry) {
+            const container = document.getElementById('notifications');
+            const codeInfo = DELIVERY_CODES.find(c => c.code === entry.code);
+            const color = codeInfo ? codeInfo.color : 'blue';
+            
+            const notif = document.createElement('div');
+            notif.className = `notification glass-card rounded-xl p-4 border-l-4 border-${color}-500`;
+            notif.innerHTML = `
+                <div class="flex items-start gap-3">
+                    <div class="text-2xl">📬</div>
+                    <div class="flex-1">
+                        <div class="font-medium text-gray-200">${entry.user_name}</div>
+                        <div class="text-sm text-gray-400">
+                            Добавил код <span class="text-${color}-400 font-medium">${entry.code}</span> 
+                            (${entry.count} шт.)
+                        </div>
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()" class="text-gray-500 hover:text-white">✕</button>
+                </div>
+            `;
+            
+            container.appendChild(notif);
+            
+            // Автоудаление через 5 секунд
+            setTimeout(() => {
+                notif.classList.add('notification-exit');
+                setTimeout(() => notif.remove(), 300);
+            }, 5000);
+        }
+
+        // Обновляем showAppScreen
+        const originalShowAppScreen = showAppScreen;
+        showAppScreen = async function() {
+            await originalShowAppScreen();
+            await loadWeeklyChart();
+            await loadDaySummary();
+            startNotifications();
+        };
+
+        // Останавливаем уведомления при выходе
+        const originalLogout = logout;
+        logout = function() {
+            stopNotifications();
+            originalLogout();
+        };
+    </script>
+</body>
+</html>

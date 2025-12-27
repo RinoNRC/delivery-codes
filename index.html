@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delivery Codes - Система учёта кодов доставки</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #030712 0%, #0a1628 50%, #020617 100%);
+            min-height: 100vh;
+        }
+        
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+        
+        .glass-input {
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .glass-input:focus {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(59, 130, 246, 0.5);
+            box-shadow: 0 0 25px rgba(59, 130, 246, 0.2);
+        }
+        
+        .glass-input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+        
+        .code-btn {
+            transition: all 0.3s ease;
+        }
+        
+        .code-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(59, 130, 246, 0.3);
+        }
+        
+        .code-btn.selected {
+            background: linear-gradient(135deg, #1d4ed8, #1e40af);
+            border-color: #3b82f6;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+        }
+        
+        .glow {
+            box-shadow: 0 0 60px rgba(59, 130, 246, 0.15);
+        }
+        
+        .glow-purple {
+            box-shadow: 0 0 60px rgba(139, 92, 246, 0.15);
+        }
+        
+        .table-row {
+            transition: all 0.3s ease;
+        }
+        
+        .table-row:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .floating-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.15;
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        .orb-1 {
+            width: 500px;
+            height: 500px;
+            background: #1d4ed8;
+            top: -150px;
+            right: -150px;
+        }
+        
+        .orb-2 {
+            width: 400px;
+            height: 400px;
+            background: #7c3aed;
+            bottom: -100px;
+            left: -100px;
+        }
+        
+        .orb-3 {
+            width: 300px;
+            height: 300px;
+            background: #0891b2;
+            top: 40%;
+            left: 30%;
+        }
+        
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease forwards;
+        }
+        
+        .animate-slide-up {
+            animation: slideUp 0.6s ease forwards;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .stat-card {
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: scale(1.02);
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .scrollbar-custom::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .scrollbar-custom::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 3px;
+        }
+        
+        .scrollbar-custom::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+        
+        .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            box-shadow: 0 10px 30px rgba(37, 99, 235, 0.3);
+            transform: translateY(-1px);
+        }
+        
+        .login-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        
+        .tab-btn {
+            transition: all 0.3s ease;
+        }
+        
+        .tab-btn.active {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(59, 130, 246, 0.5);
+        }
+        
+        .user-badge {
+            background: linear-gradient(135deg, #1e40af 0%, #7c3aed 100%);
+        }
+        
+        /* Modal */
+        .modal-overlay {
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+        }
+        
+        /* Date picker styling */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
+        }
+        
+        .filter-chip {
+            transition: all 0.2s ease;
+        }
+        
+        .filter-chip:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .filter-chip.active {
+            background: rgba(59, 130, 246, 0.3);
+            border-color: rgba(59, 130, 246, 0.5);
+        }
+        
+        .date-nav-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .date-nav-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body class="text-white">
+    <!-- Floating Orbs -->
+    <div class="floating-orb orb-1"></div>
+    <div class="floating-orb orb-2"></div>
+    <div class="floating-orb orb-3"></div>
+    
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
+        <div class="modal-content rounded-2xl p-6 w-full max-w-md animate-slide-up">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-gray-100">✏️ Редактировать запись</h3>
+                <button onclick="closeEditModal()" class="text-gray-500 hover:text-white text-2xl">&times;</button>
+            </div>
+            <form id="editForm" class="space-y-4">
+                <input type="hidden" id="editEntryId">
+                <div>
+                    <label class="text-gray-400 text-sm mb-2 block">Код</label>
+                    <input type="text" id="editCodeInput" 
+                        class="glass-input rounded-xl px-4 py-3 w-full text-white outline-none" required>
+                </div>
+                <div>
+                    <label class="text-gray-400 text-sm mb-2 block">Количество</label>
+                    <input type="number" id="editCountInput" min="1"
+                        class="glass-input rounded-xl px-4 py-3 w-full text-white outline-none" required>
+                </div>
+                <div>
+                    <label class="text-gray-400 text-sm mb-2 block">Комментарий</label>
+                    <input type="text" id="editCommentInput" placeholder="Дополнительная информация..."
+                        class="glass-input rounded-xl px-4 py-3 w-full text-white outline-none">
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="closeEditModal()" 
+                        class="flex-1 glass-input rounded-xl py-3 font-medium hover:bg-white/10">
+                        Отмена
+                    </button>
+                    <button type="submit" class="flex-1 btn-primary rounded-xl py-3 font-semibold">
+                        💾 Сохранить
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Auth Screen -->
+    <div id="authScreen" class="min-h-screen flex items-center justify-center p-4">
+        <div class="login-card rounded-3xl p-8 w-full max-w-md animate-slide-up glow-purple">
+            <!-- Logo -->
+            <div class="text-center mb-8">
+                <div class="text-5xl mb-4">📦</div>
+                <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                    Delivery Codes
+                </h1>
+                <p class="text-gray-500 text-sm mt-2">Система учёта кодов доставки</p>
+            </div>
+            
+            <!-- Auth Tabs -->
+            <div class="flex gap-2 mb-6">
+                <button onclick="switchAuthTab('login')" id="loginTab" 
+                    class="tab-btn active flex-1 glass-input rounded-xl py-3 font-medium">
+                    Вход
+                </button>
+                <button onclick="switchAuthTab('register')" id="registerTab" 
+                    class="tab-btn flex-1 glass-input rounded-xl py-3 font-medium">
+                    Регистрация
+                </button>
+            </div>
+            
+            <!-- Login Form -->
+            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="text-gray-400 text-sm mb-2 block">Логин</label>
+                    <input type="text" id="loginUsername" placeholder="Введите логин" 
+                        class="glass-input rounded-xl px-4 py-3 w-full text-white outline-none" required>
+                </div>
+                <div>
+                    <label class="text-gray-400 text-sm mb-2 block">Пароль</label>
+                    <input type="password" id="loginPassword" placeholder="Введите пароль" 
+                        class="glass-input rounded-xl px-4 py-3 w-full text-white outline-none" required>
+                </div>
+                <div id="loginError" class="text-red-400 text-sm hidden"></div>
+                <button type="submit" class="btn-primary w-full rounded-xl py-3 font-semibold mt-6">
+                    Войти
+                </button>
+            </form>
+            
+            <!-- Register Form -->
+            <form id="registerForm" onsubmit="handleRegister(event)" class="space-y-4 hidden">
+                <div>
+                    <label class="text-gray-400 text-sm mb-2 block">Имя</label>
+                    <input type="text" id="registerName" placeholder="Ваше имя" 
+                        class="glass-input rounded-xl px-4 py-3 w-full text-white outline-none" required>
+                </div>
+                <div>
+                    <label class="text-gray-400 text-sm mb-2 block">Логин</label>
+                    <input type="text" id="registerUsername" placeholder="Придумайте логин" 
+                        class="glass-input rounded-xl px-4 py-3 w-full text-white outline-none" required>
+                </div>
+                <div>
+                    <label class="text-gray-400 text-sm mb-2 block">Пароль</label>
+                    <input type="password" id="registerPassword" placeholder="Придумайте пароль" 
+                        class="glass-input rounded-xl px-4 py-3 w-full text-white outline-none" required>
+                </div>
+                <div>
+                    <label class="text-gray-400 text-sm mb-2 block">Повторите пароль</label>
+                    <input type="password" id="registerPasswordConfirm" placeholder="Повторите пароль" 
+                        class="glass-input rounded-xl px-4 py-3 w-full text-white outline-none" required>
+                </div>
+                <div id="registerError" class="text-red-400 text-sm hidden"></div>
+                <button type="submit" class="btn-primary w-full rounded-xl py-3 font-semibold mt-6">
+                    Зарегистрироваться
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App Screen -->
+    <div id="appScreen" class="hidden p-4 md:p-8">
+        <div class="max-w-6xl mx-auto">
+            <!-- Header -->
+            <header class="glass-card rounded-2xl p-6 mb-6 glow">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                        <h1 class="text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                            📦 Delivery Codes
+                        </h1>
+                        <p class="text-gray-500 mt-1">Система учёта кодов доставки</p>
+                    </div>
+                    <div class="flex items-center gap-4 flex-wrap">
+                        <div class="glass px-4 py-2 rounded-xl">
+                            <span class="text-gray-500 text-sm">Сегодня:</span>
+                            <span id="currentDate" class="ml-2 font-semibold text-blue-400"></span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="user-badge px-4 py-2 rounded-xl flex items-center gap-2">
+                                <span>👤</span>
+                                <span id="currentUserName" class="font-medium"></span>
+                            </div>
+                            <button onclick="logout()" class="glass-input hover:bg-red-500/20 hover:border-red-500/30 rounded-xl px-4 py-2 text-gray-400 hover:text-red-400 transition-all">
+                                Выйти
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Quick Code Buttons -->
+            <div class="glass-card rounded-2xl p-6 mb-6">
+                <h2 class="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-200">
+                    <span>🏷️</span> Быстрый выбор кода
+                </h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3" id="codeButtons">
+                    <!-- Generated by JS -->
+                </div>
+            </div>
+
+            <!-- Add Entry Form -->
+            <div class="glass-card rounded-2xl p-6 mb-6">
+                <h2 class="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-200">
+                    <span>📝</span> Добавить запись
+                </h2>
+                <form id="entryForm" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="text-gray-500 text-sm mb-2 block">Код</label>
+                        <input type="text" id="codeInput" placeholder="Например: 08" 
+                            class="glass-input rounded-xl px-4 py-3 w-full text-white outline-none" required>
+                    </div>
+                    <div>
+                        <label class="text-gray-500 text-sm mb-2 block">Количество</label>
+                        <input type="number" id="countInput" placeholder="1" min="1" value="1"
+                            class="glass-input rounded-xl px-4 py-3 w-full text-white outline-none" required>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="text-gray-500 text-sm mb-2 block">Комментарий (опционально)</label>
+                        <input type="text" id="commentInput" placeholder="Дополнительная информация..."
+                            class="glass-input rounded-xl px-4 py-3 w-full text-white outline-none">
+                    </div>
+                    <div class="md:col-span-4">
+                        <button type="submit" class="btn-primary w-full rounded-xl px-6 py-3 font-semibold">
+                            ✅ Добавить запись
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Statistics -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="glass-card stat-card rounded-2xl p-5">
+                    <div class="text-3xl font-bold text-blue-400" id="statTotal">0</div>
+                    <div class="text-gray-500 text-sm mt-1">Всего записей</div>
+                </div>
+                <div class="glass-card stat-card rounded-2xl p-5">
+                    <div class="text-3xl font-bold text-orange-400" id="statCode08">0</div>
+                    <div class="text-gray-500 text-sm mt-1">Код 08</div>
+                </div>
+                <div class="glass-card stat-card rounded-2xl p-5">
+                    <div class="text-3xl font-bold text-red-400" id="statCode03">0</div>
+                    <div class="text-gray-500 text-sm mt-1">Код 03</div>
+                </div>
+                <div class="glass-card stat-card rounded-2xl p-5">
+                    <div class="text-3xl font-bold text-green-400" id="statCode17">0</div>
+                    <div class="text-gray-500 text-sm mt-1">Код 17</div>
+                </div>
+            </div>
+
+            <!-- History & Filters Section -->
+            <div class="glass-card rounded-2xl p-6 mb-6">
+                <h2 class="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-200">
+                    <span>📅</span> История и фильтры
+                </h2>
+                
+                <!-- Date Navigation -->
+                <div class="flex flex-wrap items-center gap-4 mb-4">
+                    <div class="flex items-center gap-2">
+                        <button onclick="changeDate(-1)" class="date-nav-btn glass-input rounded-lg p-2 text-gray-400">
+                            ◀
+                        </button>
+                        <input type="date" id="selectedDate" 
+                            class="glass-input rounded-xl px-4 py-2 text-white outline-none cursor-pointer"
+                            onchange="applyFilters()">
+                        <button onclick="changeDate(1)" class="date-nav-btn glass-input rounded-lg p-2 text-gray-400">
+                            ▶
+                        </button>
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <button onclick="setQuickDate('today')" class="filter-chip glass-input rounded-lg px-3 py-2 text-sm text-gray-300">
+                            Сегодня
+                        </button>
+                        <button onclick="setQuickDate('yesterday')" class="filter-chip glass-input rounded-lg px-3 py-2 text-sm text-gray-300">
+                            Вчера
+                        </button>
+                        <button onclick="setQuickDate('week')" class="filter-chip glass-input rounded-lg px-3 py-2 text-sm text-gray-300">
+                            Неделя
+                        </button>
+                        <button onclick="setQuickDate('month')" class="filter-chip glass-input rounded-lg px-3 py-2 text-sm text-gray-300">
+                            Месяц
+                        </button>
+                        <button onclick="setQuickDate('all')" class="filter-chip glass-input rounded-lg px-3 py-2 text-sm text-gray-300">
+                            Всё время
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Filters -->
+                <div class="flex flex-wrap items-center gap-4">
+                    <!-- Search -->
+                    <div class="flex-1 min-w-[200px]">
+                        <input type="text" id="searchInput" placeholder="🔍 Поиск по комментарию..." 
+                            class="glass-input rounded-xl px-4 py-2 w-full text-white outline-none text-sm"
+                            oninput="applyFilters()">
+                    </div>
+                    
+                    <!-- Code Filter -->
+                    <div>
+                        <select id="codeFilter" 
+                            class="glass-input rounded-xl px-4 py-2 text-white outline-none text-sm cursor-pointer"
+                            onchange="applyFilters()">
+                            <option value="">Все коды</option>
+                            <!-- Generated by JS -->
+                        </select>
+                    </div>
+                    
+                    <!-- User Filter -->
+                    <div>
+                        <select id="userFilter" 
+                            class="glass-input rounded-xl px-4 py-2 text-white outline-none text-sm cursor-pointer"
+                            onchange="applyFilters()">
+                            <option value="">Все курьеры</option>
+                            <!-- Generated by JS -->
+                        </select>
+                    </div>
+                    
+                    <!-- Reset Filters -->
+                    <button onclick="resetFilters()" class="glass-input rounded-xl px-4 py-2 text-gray-400 hover:text-white text-sm transition-colors">
+                        ✕ Сбросить
+                    </button>
+                </div>
+                
+                <!-- Active Filters Display -->
+                <div id="activeFilters" class="flex flex-wrap gap-2 mt-4 hidden">
+                    <!-- Generated by JS -->
+                </div>
+            </div>
+
+            <!-- Entries Table -->
+            <div class="glass-card rounded-2xl p-6 mb-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                    <h2 class="text-lg font-semibold flex items-center gap-2 text-gray-200">
+                        <span>📋</span> <span id="entriesTitle">Записи за сегодня</span>
+                        <span id="entriesCount" class="text-sm font-normal text-gray-500 ml-2"></span>
+                    </h2>
+                    <div class="flex items-center gap-3">
+                        <div class="flex gap-2">
+                            <button onclick="setViewMode('my')" id="viewMyBtn" 
+                                class="tab-btn active glass-input rounded-xl px-4 py-2 text-sm font-medium">
+                                Мои записи
+                            </button>
+                            <button onclick="setViewMode('all')" id="viewAllBtn" 
+                                class="tab-btn glass-input rounded-xl px-4 py-2 text-sm font-medium">
+                                Вся бригада
+                            </button>
+                        </div>
+                        <button onclick="clearMyTodayEntries()" class="text-red-400 hover:text-red-300 text-sm flex items-center gap-1 transition-colors">
+                            <span>🗑️</span> Очистить мои
+                        </button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto scrollbar-custom">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="text-left text-gray-500 text-sm border-b border-white/5">
+                                <th class="pb-3 px-2">Дата</th>
+                                <th class="pb-3 px-2">Время</th>
+                                <th class="pb-3 px-2">Курьер</th>
+                                <th class="pb-3 px-2">Код</th>
+                                <th class="pb-3 px-2">Кол-во</th>
+                                <th class="pb-3 px-2">Комментарий</th>
+                                <th class="pb-3 px-2 text-right">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="entriesTable">
+                            <!-- Generated by JS -->
+                        </tbody>
+                    </table>
+                    <div id="emptyState" class="text-center text-gray-600 py-12 hidden">
+                        <div class="text-5xl mb-3 opacity-50">📭</div>
+                        <p>Нет записей по выбранным фильтрам</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer class="text-center text-gray-600 text-sm py-4">
+                <p>💾 Данные сохраняются в браузере • Для серверного хранения нужен бэкенд</p>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        // Delivery codes with descriptions
+        const DELIVERY_CODES = [
+            { code: '08', name: 'Отсутствие получателя', color: 'orange' },
+            { code: '03', name: 'Неправильный адрес', color: 'red' },
+            { code: '17', name: 'Согласованная дата', color: 'green' },
+            { code: '01', name: 'Отказ от заказа', color: 'pink' },
+            { code: '05', name: 'Неполная оплата', color: 'yellow' },
+            { code: '10', name: 'Повреждённый товар', color: 'purple' },
+            { code: '12', name: 'Недозвон', color: 'cyan' },
+            { code: '15', name: 'Другое', color: 'gray' }
+        ];
+
+        // Data structure
+        let data = {
+            users: [],
+            entries: [],
+            currentUser: null
+        };
+        
+        let viewMode = 'my';
+        let filters = {
+            dateMode: 'today', // today, yesterday, week, month, all, custom
+            startDate: null,
+            endDate: null,
+            code: '',
+            userId: '',
+            search: ''
+        };
+
+        // Load data from localStorage
+        function loadData() {
+            const saved = localStorage.getItem('deliveryCodesData_v2');
+            if (saved) {
+                data = JSON.parse(saved);
+            }
+        }
+
+        // Save data to localStorage
+        function saveData() {
+            localStorage.setItem('deliveryCodesData_v2', JSON.stringify(data));
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+            
+            if (data.currentUser) {
+                showAppScreen();
+            } else {
+                showAuthScreen();
+            }
+        });
+
+        // Auth functions
+        function switchAuthTab(tab) {
+            const loginTab = document.getElementById('loginTab');
+            const registerTab = document.getElementById('registerTab');
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            
+            if (tab === 'login') {
+                loginTab.classList.add('active');
+                registerTab.classList.remove('active');
+                loginForm.classList.remove('hidden');
+                registerForm.classList.add('hidden');
+            } else {
+                loginTab.classList.remove('active');
+                registerTab.classList.add('active');
+                loginForm.classList.add('hidden');
+                registerForm.classList.remove('hidden');
+            }
+            
+            document.getElementById('loginError').classList.add('hidden');
+            document.getElementById('registerError').classList.add('hidden');
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const errorEl = document.getElementById('loginError');
+            
+            const user = data.users.find(u => u.username === username && u.password === password);
+            
+            if (!user) {
+                errorEl.textContent = 'Неверный логин или пароль';
+                errorEl.classList.remove('hidden');
+                return;
+            }
+            
+            data.currentUser = user;
+            saveData();
+            showAppScreen();
+        }
+
+        function handleRegister(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('registerName').value.trim();
+            const username = document.getElementById('registerUsername').value.trim();
+            const password = document.getElementById('registerPassword').value;
+            const passwordConfirm = document.getElementById('registerPasswordConfirm').value;
+            const errorEl = document.getElementById('registerError');
+            
+            if (password !== passwordConfirm) {
+                errorEl.textContent = 'Пароли не совпадают';
+                errorEl.classList.remove('hidden');
+                return;
+            }
+            
+            if (password.length < 4) {
+                errorEl.textContent = 'Пароль должен быть минимум 4 символа';
+                errorEl.classList.remove('hidden');
+                return;
+            }
+            
+            if (data.users.find(u => u.username === username)) {
+                errorEl.textContent = 'Пользователь с таким логином уже существует';
+                errorEl.classList.remove('hidden');
+                return;
+            }
+            
+            const newUser = {
+                id: Date.now(),
+                name,
+                username,
+                password
+            };
+            
+            data.users.push(newUser);
+            data.currentUser = newUser;
+            saveData();
+            
+            showAppScreen();
+        }
+
+        function logout() {
+            data.currentUser = null;
+            saveData();
+            showAuthScreen();
+        }
+
+        function showAuthScreen() {
+            document.getElementById('authScreen').classList.remove('hidden');
+            document.getElementById('appScreen').classList.add('hidden');
+            
+            document.getElementById('loginForm').reset();
+            document.getElementById('registerForm').reset();
+            document.getElementById('loginError').classList.add('hidden');
+            document.getElementById('registerError').classList.add('hidden');
+            switchAuthTab('login');
+        }
+
+        function showAppScreen() {
+            document.getElementById('authScreen').classList.add('hidden');
+            document.getElementById('appScreen').classList.remove('hidden');
+            
+            document.getElementById('currentUserName').textContent = data.currentUser.name;
+            
+            // Set today's date
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('selectedDate').value = today;
+            
+            updateCurrentDate();
+            renderCodeButtons();
+            renderCodeFilter();
+            renderUserFilter();
+            renderEntries();
+            updateStats();
+        }
+
+        function updateCurrentDate() {
+            const now = new Date();
+            const options = { day: 'numeric', month: 'long', year: 'numeric' };
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('ru-RU', options);
+        }
+
+        function renderCodeButtons() {
+            const container = document.getElementById('codeButtons');
+            container.innerHTML = DELIVERY_CODES.map(dc => `
+                <button type="button" onclick="selectCode('${dc.code}')" 
+                    class="code-btn glass-input rounded-xl p-4 text-left hover:bg-white/10" 
+                    data-code="${dc.code}">
+                    <div class="text-xl font-bold text-${dc.color}-400">${dc.code}</div>
+                    <div class="text-xs text-gray-500 mt-1">${dc.name}</div>
+                </button>
+            `).join('');
+        }
+
+        function renderCodeFilter() {
+            const select = document.getElementById('codeFilter');
+            select.innerHTML = '<option value="">Все коды</option>' + 
+                DELIVERY_CODES.map(dc => `<option value="${dc.code}">${dc.code} - ${dc.name}</option>`).join('');
+        }
+
+        function renderUserFilter() {
+            const select = document.getElementById('userFilter');
+            const uniqueUsers = [...new Map(data.entries.map(e => [e.userId, { id: e.userId, name: e.userName }])).values()];
+            select.innerHTML = '<option value="">Все курьеры</option>' + 
+                uniqueUsers.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
+        }
+
+        function selectCode(code) {
+            document.getElementById('codeInput').value = code;
+            document.querySelectorAll('.code-btn').forEach(btn => {
+                btn.classList.remove('selected');
+                if (btn.dataset.code === code) {
+                    btn.classList.add('selected');
+                }
+            });
+        }
+
+        function setViewMode(mode) {
+            viewMode = mode;
+            
+            document.getElementById('viewMyBtn').classList.toggle('active', mode === 'my');
+            document.getElementById('viewAllBtn').classList.toggle('active', mode === 'all');
+            
+            renderEntries();
+            updateStats();
+        }
+
+        // Date navigation
+        function changeDate(delta) {
+            const dateInput = document.getElementById('selectedDate');
+            const currentDate = new Date(dateInput.value);
+            currentDate.setDate(currentDate.getDate() + delta);
+            dateInput.value = currentDate.toISOString().split('T')[0];
+            filters.dateMode = 'custom';
+            applyFilters();
+        }
+
+        function setQuickDate(mode) {
+            filters.dateMode = mode;
+            const today = new Date();
+            const dateInput = document.getElementById('selectedDate');
+            
+            switch(mode) {
+                case 'today':
+                    dateInput.value = today.toISOString().split('T')[0];
+                    filters.startDate = filters.endDate = today.toISOString().split('T')[0];
+                    break;
+                case 'yesterday':
+                    const yesterday = new Date(today);
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    dateInput.value = yesterday.toISOString().split('T')[0];
+                    filters.startDate = filters.endDate = yesterday.toISOString().split('T')[0];
+                    break;
+                case 'week':
+                    const weekAgo = new Date(today);
+                    weekAgo.setDate(weekAgo.getDate() - 7);
+                    filters.startDate = weekAgo.toISOString().split('T')[0];
+                    filters.endDate = today.toISOString().split('T')[0];
+                    break;
+                case 'month':
+                    const monthAgo = new Date(today);
+                    monthAgo.setMonth(monthAgo.getMonth() - 1);
+                    filters.startDate = monthAgo.toISOString().split('T')[0];
+                    filters.endDate = today.toISOString().split('T')[0];
+                    break;
+                case 'all':
+                    filters.startDate = null;
+                    filters.endDate = null;
+                    break;
+            }
+            
+            // Highlight active quick filter
+            document.querySelectorAll('.filter-chip').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            applyFilters();
+        }
+
+        function applyFilters() {
+            filters.code = document.getElementById('codeFilter').value;
+            filters.userId = document.getElementById('userFilter').value;
+            filters.search = document.getElementById('searchInput').value.toLowerCase();
+            
+            if (filters.dateMode === 'custom' || filters.dateMode === 'today' || filters.dateMode === 'yesterday') {
+                const selectedDate = document.getElementById('selectedDate').value;
+                filters.startDate = filters.endDate = selectedDate;
+            }
+            
+            renderEntries();
+            updateStats();
+            updateActiveFiltersDisplay();
+        }
+
+        function resetFilters() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('selectedDate').value = today;
+            document.getElementById('codeFilter').value = '';
+            document.getElementById('userFilter').value = '';
+            document.getElementById('searchInput').value = '';
+            
+            filters = {
+                dateMode: 'today',
+                startDate: today,
+                endDate: today,
+                code: '',
+                userId: '',
+                search: ''
+            };
+            
+            document.querySelectorAll('.filter-chip').forEach(btn => btn.classList.remove('active'));
+            
+            renderEntries();
+            updateStats();
+            updateActiveFiltersDisplay();
+        }
+
+        function updateActiveFiltersDisplay() {
+            const container = document.getElementById('activeFilters');
+            const chips = [];
+            
+            if (filters.dateMode !== 'today') {
+                let dateText = '';
+                switch(filters.dateMode) {
+                    case 'yesterday': dateText = 'Вчера'; break;
+                    case 'week': dateText = 'Последняя неделя'; break;
+                    case 'month': dateText = 'Последний месяц'; break;
+                    case 'all': dateText = 'Всё время'; break;
+                    case 'custom': dateText = formatDate(filters.startDate); break;
+                }
+                chips.push(`<span class="glass-input rounded-lg px-3 py-1 text-sm text-blue-400">📅 ${dateText}</span>`);
+            }
+            
+            if (filters.code) {
+                const codeInfo = DELIVERY_CODES.find(c => c.code === filters.code);
+                chips.push(`<span class="glass-input rounded-lg px-3 py-1 text-sm text-orange-400">🏷️ ${filters.code}${codeInfo ? ' - ' + codeInfo.name : ''}</span>`);
+            }
+            
+            if (filters.userId) {
+                const user = data.users.find(u => u.id == filters.userId);
+                chips.push(`<span class="glass-input rounded-lg px-3 py-1 text-sm text-purple-400">👤 ${user ? user.name : 'Курьер'}</span>`);
+            }
+            
+            if (filters.search) {
+                chips.push(`<span class="glass-input rounded-lg px-3 py-1 text-sm text-cyan-400">🔍 "${filters.search}"</span>`);
+            }
+            
+            if (chips.length > 0) {
+                container.innerHTML = chips.join('');
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+        }
+
+        function formatDateFull(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            const today = new Date().toISOString().split('T')[0];
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            
+            if (dateStr === today) return 'Сегодня';
+            if (dateStr === yesterday.toISOString().split('T')[0]) return 'Вчера';
+            
+            return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+        }
+
+        // Handle form submission
+        document.getElementById('entryForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const code = document.getElementById('codeInput').value.trim();
+            const count = parseInt(document.getElementById('countInput').value) || 1;
+            const comment = document.getElementById('commentInput').value.trim();
+            
+            if (!code) {
+                alert('Пожалуйста, введите код');
+                return;
+            }
+            
+            const entry = {
+                id: Date.now(),
+                date: new Date().toISOString().split('T')[0],
+                time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+                userId: data.currentUser.id,
+                userName: data.currentUser.name,
+                code,
+                count,
+                comment
+            };
+            
+            data.entries.push(entry);
+            saveData();
+            
+            document.getElementById('codeInput').value = '';
+            document.getElementById('countInput').value = '1';
+            document.getElementById('commentInput').value = '';
+            document.querySelectorAll('.code-btn').forEach(btn => btn.classList.remove('selected'));
+            
+            // Reset to today view after adding
+            resetFilters();
+            renderUserFilter();
+        });
+
+        // Get filtered entries
+        function getFilteredEntries() {
+            let entries = [...data.entries];
+            
+            // Filter by view mode
+            if (viewMode === 'my') {
+                entries = entries.filter(e => e.userId === data.currentUser.id);
+            }
+            
+            // Filter by date
+            if (filters.startDate && filters.endDate) {
+                entries = entries.filter(e => e.date >= filters.startDate && e.date <= filters.endDate);
+            } else if (filters.startDate) {
+                entries = entries.filter(e => e.date >= filters.startDate);
+            } else if (filters.endDate) {
+                entries = entries.filter(e => e.date <= filters.endDate);
+            }
+            
+            // Filter by code
+            if (filters.code) {
+                entries = entries.filter(e => e.code === filters.code);
+            }
+            
+            // Filter by user
+            if (filters.userId) {
+                entries = entries.filter(e => e.userId == filters.userId);
+            }
+            
+            // Filter by search
+            if (filters.search) {
+                entries = entries.filter(e => 
+                    (e.comment && e.comment.toLowerCase().includes(filters.search)) ||
+                    e.code.toLowerCase().includes(filters.search) ||
+                    e.userName.toLowerCase().includes(filters.search)
+                );
+            }
+            
+            return entries.reverse();
+        }
+
+        // Render entries table
+        function renderEntries() {
+            const entries = getFilteredEntries();
+            
+            const table = document.getElementById('entriesTable');
+            const emptyState = document.getElementById('emptyState');
+            const entriesCount = document.getElementById('entriesCount');
+            const entriesTitle = document.getElementById('entriesTitle');
+            
+            // Update title
+            let title = 'Записи';
+            if (filters.dateMode === 'today') title = 'Записи за сегодня';
+            else if (filters.dateMode === 'yesterday') title = 'Записи за вчера';
+            else if (filters.dateMode === 'week') title = 'Записи за неделю';
+            else if (filters.dateMode === 'month') title = 'Записи за месяц';
+            else if (filters.dateMode === 'all') title = 'Все записи';
+            else if (filters.dateMode === 'custom') title = 'Записи за ' + formatDate(filters.startDate);
+            
+            entriesTitle.textContent = title;
+            
+            const totalCount = entries.reduce((sum, e) => sum + e.count, 0);
+            entriesCount.textContent = `(${entries.length} записей, ${totalCount} шт.)`;
+            
+            if (entries.length === 0) {
+                table.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            
+            emptyState.classList.add('hidden');
+            
+            table.innerHTML = entries.map(entry => {
+                const codeInfo = DELIVERY_CODES.find(c => c.code === entry.code);
+                const colorClass = codeInfo ? codeInfo.color : 'blue';
+                const isOwn = entry.userId === data.currentUser.id;
+                
+                return `
+                    <tr class="table-row border-b border-white/5">
+                        <td class="py-3 px-2 text-gray-500 text-sm">${formatDateFull(entry.date)}</td>
+                        <td class="py-3 px-2 text-gray-500">${entry.time}</td>
+                        <td class="py-3 px-2 ${isOwn ? 'text-blue-400' : 'text-gray-300'}">${entry.userName}</td>
+                        <td class="py-3 px-2">
+                            <span class="inline-block bg-${colorClass}-500/20 text-${colorClass}-400 px-3 py-1 rounded-lg font-medium">
+                                ${entry.code}
+                            </span>
+                        </td>
+                        <td class="py-3 px-2 font-semibold text-gray-200">${entry.count}</td>
+                        <td class="py-3 px-2 text-gray-500 text-sm max-w-[200px] truncate">${entry.comment || '—'}</td>
+                        <td class="py-3 px-2 text-right">
+                            ${isOwn ? `
+                                <button onclick="openEditModal(${entry.id})" 
+                                    class="text-blue-400/60 hover:text-blue-400 transition-colors p-1 mr-1" title="Редактировать">
+                                    ✏️
+                                </button>
+                                <button onclick="deleteEntry(${entry.id})" 
+                                    class="text-red-400/60 hover:text-red-400 transition-colors p-1" title="Удалить">
+                                    🗑️
+                                </button>
+                            ` : ''}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Edit Modal Functions
+        function openEditModal(entryId) {
+            const entry = data.entries.find(e => e.id === entryId);
+            if (!entry) return;
+            
+            document.getElementById('editEntryId').value = entryId;
+            document.getElementById('editCodeInput').value = entry.code;
+            document.getElementById('editCountInput').value = entry.count;
+            document.getElementById('editCommentInput').value = entry.comment || '';
+            
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+        }
+
+        document.getElementById('editForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const entryId = parseInt(document.getElementById('editEntryId').value);
+            const entry = data.entries.find(e => e.id === entryId);
+            
+            if (!entry) return;
+            
+            entry.code = document.getElementById('editCodeInput').value.trim();
+            entry.count = parseInt(document.getElementById('editCountInput').value) || 1;
+            entry.comment = document.getElementById('editCommentInput').value.trim();
+            
+            saveData();
+            closeEditModal();
+            renderEntries();
+            updateStats();
+        });
+
+        // Close modal on overlay click
+        document.getElementById('editModal').addEventListener('click', (e) => {
+            if (e.target.id === 'editModal') {
+                closeEditModal();
+            }
+        });
+
+        // Delete entry
+        function deleteEntry(id) {
+            if (confirm('Удалить эту запись?')) {
+                data.entries = data.entries.filter(e => e.id !== id);
+                saveData();
+                renderEntries();
+                updateStats();
+            }
+        }
+
+        // Clear my today's entries
+        function clearMyTodayEntries() {
+            const today = new Date().toISOString().split('T')[0];
+            const myTodayCount = data.entries.filter(e => e.date === today && e.userId === data.currentUser.id).length;
+            
+            if (myTodayCount === 0) {
+                alert('У вас нет записей за сегодня');
+                return;
+            }
+            
+            if (confirm(`Удалить все ваши записи за сегодня (${myTodayCount} шт.)?`)) {
+                data.entries = data.entries.filter(e => !(e.date === today && e.userId === data.currentUser.id));
+                saveData();
+                renderEntries();
+                updateStats();
+            }
+        }
+
+        // Update statistics
+        function updateStats() {
+            const entries = getFilteredEntries();
+            
+            const totalCount = entries.reduce((sum, e) => sum + e.count, 0);
+            const code08Count = entries.filter(e => e.code === '08').reduce((sum, e) => sum + e.count, 0);
+            const code03Count = entries.filter(e => e.code === '03').reduce((sum, e) => sum + e.count, 0);
+            const code17Count = entries.filter(e => e.code === '17').reduce((sum, e) => sum + e.count, 0);
+            
+            document.getElementById('statTotal').textContent = totalCount;
+            document.getElementById('statCode08').textContent = code08Count;
+            document.getElementById('statCode03').textContent = code03Count;
+            document.getElementById('statCode17').textContent = code17Count;
+        }
+
+        // Keyboard shortcut: Escape to close modal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeEditModal();
+            }
+        });
+    </script>
+</body>
+</html>
