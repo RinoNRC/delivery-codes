@@ -85,37 +85,12 @@ function getAllUsers() {
 
 // Записи
 function createEntry(userId, code, count, comment) {
-    const now = new Date();
-    const localDateTime = now.getFullYear() + '-' + 
-        String(now.getMonth() + 1).padStart(2, '0') + '-' + 
-        String(now.getDate()).padStart(2, '0') + ' ' +
-        String(now.getHours()).padStart(2, '0') + ':' +
-        String(now.getMinutes()).padStart(2, '0') + ':' +
-        String(now.getSeconds()).padStart(2, '0');
-    
-    db.run('INSERT INTO entries (user_id, code, count, comment, created_at) VALUES (?, ?, ?, ?, ?)', 
-        [userId, code, count, comment || null, localDateTime]);
+    db.run('INSERT INTO entries (user_id, code, count, comment) VALUES (?, ?, ?, ?)', 
+        [userId, code, count, comment || null]);
     save();
-    
-    // Получаем последнюю вставленную запись напрямую
-    const result = db.exec(`
-        SELECT e.id, e.user_id, e.code, e.count, e.comment, e.created_at, u.name as user_name 
-        FROM entries e 
-        JOIN users u ON e.user_id = u.id 
-        ORDER BY e.id DESC LIMIT 1
-    `);
-    
-    if (result.length === 0 || result[0].values.length === 0) return null;
-    const row = result[0].values[0];
-    return { 
-        id: Number(row[0]), 
-        user_id: Number(row[1]), 
-        code: row[2], 
-        count: row[3], 
-        comment: row[4], 
-        created_at: row[5], 
-        user_name: row[6] 
-    };
+    const result = db.exec('SELECT last_insert_rowid() as id');
+    const id = result[0].values[0][0];
+    return getEntryById(id);
 }
 
 function getEntryById(id) {
@@ -246,56 +221,6 @@ function getRecentEntries(sinceId, excludeUserId) {
     }));
 }
 
-// Экспорт всех данных
-function exportAll() {
-    const users = db.exec('SELECT id, name, username, password, created_at FROM users');
-    const entries = db.exec('SELECT id, user_id, code, count, comment, created_at FROM entries');
-    
-    return {
-        version: 1,
-        exportDate: new Date().toISOString(),
-        users: users.length > 0 ? users[0].values.map(row => ({
-            id: row[0], name: row[1], username: row[2], password: row[3], created_at: row[4]
-        })) : [],
-        entries: entries.length > 0 ? entries[0].values.map(row => ({
-            id: row[0], user_id: row[1], code: row[2], count: row[3], comment: row[4], created_at: row[5]
-        })) : []
-    };
-}
-
-// Импорт данных
-function importAll(users, entries) {
-    let usersImported = 0;
-    let entriesImported = 0;
-    
-    // Импорт пользователей
-    users.forEach(u => {
-        try {
-            const existing = db.exec('SELECT id FROM users WHERE username = ?', [u.username]);
-            if (existing.length === 0 || existing[0].values.length === 0) {
-                db.run('INSERT INTO users (name, username, password, created_at) VALUES (?, ?, ?, ?)',
-                    [u.name, u.username, u.password, u.created_at]);
-                usersImported++;
-            }
-        } catch (e) { console.error(e); }
-    });
-    
-    // Импорт записей
-    entries.forEach(e => {
-        try {
-            const existing = db.exec('SELECT id FROM entries WHERE id = ?', [e.id]);
-            if (existing.length === 0 || existing[0].values.length === 0) {
-                db.run('INSERT INTO entries (user_id, code, count, comment, created_at) VALUES (?, ?, ?, ?, ?)',
-                    [e.user_id, e.code, e.count, e.comment, e.created_at]);
-                entriesImported++;
-            }
-        } catch (err) { console.error(err); }
-    });
-    
-    save();
-    return { usersImported, entriesImported };
-}
-
 module.exports = {
     init,
     createUser,
@@ -310,7 +235,5 @@ module.exports = {
     getEntries,
     getStatsByDays,
     getDaySummary,
-    getRecentEntries,
-    exportAll,
-    importAll
+    getRecentEntries
 };

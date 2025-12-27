@@ -73,19 +73,14 @@ app.get('/api/entries', (req, res) => {
 
 app.post('/api/entries', (req, res) => {
     try {
-        console.log('POST /api/entries body:', JSON.stringify(req.body));
         const { userId, code, count, comment } = req.body;
-        const userIdNum = parseInt(userId);
-        
-        if (!userIdNum || !code) {
-            console.log('Validation failed - userId:', userId, 'userIdNum:', userIdNum, 'code:', code);
+        if (!userId || !code) {
             return res.status(400).json({ error: 'userId и code обязательны' });
         }
-        const entry = db.createEntry(userIdNum, code, count || 1, comment);
-        console.log('Entry created:', entry);
+        const entry = db.createEntry(userId, code, count || 1, comment);
         res.json(entry);
     } catch (err) {
-        console.error('Error creating entry:', err);
+        console.error(err);
         res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
@@ -119,36 +114,6 @@ app.delete('/api/entries/today/:userId', (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Ошибка сервера' });
-    }
-});
-
-// ============ BACKUP ROUTES ============
-
-// Экспорт всех данных
-app.get('/api/backup/export', (req, res) => {
-    try {
-        const data = db.exportAll();
-        res.setHeader('Content-Type', 'application/json');
-        res.setHeader('Content-Disposition', `attachment; filename=delivery-backup-${new Date().toISOString().split('T')[0]}.json`);
-        res.json(data);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Ошибка экспорта' });
-    }
-});
-
-// Импорт данных
-app.post('/api/backup/import', (req, res) => {
-    try {
-        const { users, entries } = req.body;
-        if (!users || !entries) {
-            return res.status(400).json({ error: 'Неверный формат данных' });
-        }
-        const result = db.importAll(users, entries);
-        res.json(result);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Ошибка импорта' });
     }
 });
 

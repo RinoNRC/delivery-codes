@@ -377,15 +377,6 @@
             </div>
 
             <footer class="text-center text-gray-600 text-sm py-4">
-                <div class="flex justify-center gap-4 mb-2">
-                    <button onclick="exportBackup()" class="glass-input rounded-lg px-4 py-2 text-gray-400 hover:text-green-400 hover:border-green-500/30 transition-all flex items-center gap-2">
-                        📥 Экспорт БД
-                    </button>
-                    <label class="glass-input rounded-lg px-4 py-2 text-gray-400 hover:text-blue-400 hover:border-blue-500/30 transition-all flex items-center gap-2 cursor-pointer">
-                        📤 Импорт БД
-                        <input type="file" accept=".json" onchange="importBackup(event)" class="hidden">
-                    </label>
-                </div>
                 <p>💾 Данные хранятся на сервере • SQLite база данных</p>
             </footer>
         </div>
@@ -422,21 +413,13 @@
 
         // Init
         document.addEventListener('DOMContentLoaded', () => {
-            try {
-                const saved = localStorage.getItem('deliveryUser');
-                if (saved) {
-                    const user = JSON.parse(saved);
-                    if (user && user.id && user.name) {
-                        currentUser = user;
-                        showAppScreen();
-                        return;
-                    }
-                }
-            } catch (e) {
-                console.error('Error loading user:', e);
-                localStorage.removeItem('deliveryUser');
+            const saved = localStorage.getItem('deliveryUser');
+            if (saved) {
+                currentUser = JSON.parse(saved);
+                showAppScreen();
+            } else {
+                showAuthScreen();
             }
-            showAuthScreen();
         });
 
         // Auth
@@ -709,14 +692,6 @@
         // Form submit
         document.getElementById('entryForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
-            // Проверяем авторизацию
-            if (!currentUser || !currentUser.id) {
-                alert('Сессия истекла. Пожалуйста, войдите заново.');
-                logout();
-                return;
-            }
-            
             const code = document.getElementById('codeInput').value.trim();
             const count = parseInt(document.getElementById('countInput').value) || 1;
             const comment = document.getElementById('commentInput').value.trim();
@@ -732,19 +707,9 @@
                 document.getElementById('countInput').value = '1';
                 document.getElementById('commentInput').value = '';
                 document.querySelectorAll('.code-btn').forEach(btn => btn.classList.remove('selected'));
-                
-                // Сбрасываем фильтры на сегодня и обновляем всё
-                const today = new Date().toISOString().split('T')[0];
-                document.getElementById('selectedDate').value = today;
-                document.getElementById('codeFilter').value = '';
-                document.getElementById('userFilter').value = '';
-                document.getElementById('searchInput').value = '';
-                filters = { dateMode: 'today', startDate: today, endDate: today, code: '', userId: '', search: '' };
-                document.querySelectorAll('.filter-chip').forEach(btn => btn.classList.remove('active'));
-                
-                await loadEntries();
-                await loadWeeklyChart();
-                await loadDaySummary();
+                resetFilters();
+                loadWeeklyChart();
+                loadDaySummary();
             } catch (err) { alert(err.message); }
         });
 
@@ -990,62 +955,6 @@
             stopNotifications();
             originalLogout();
         };
-
-        // ============ BACKUP ============
-        async function exportBackup() {
-            try {
-                const response = await fetch('/api/backup/export');
-                const data = await response.json();
-                
-                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `delivery-backup-${new Date().toISOString().split('T')[0]}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
-                
-                showNotification({ user_name: 'Система', code: '✅', count: 'Бэкап сохранён' });
-            } catch (err) {
-                alert('Ошибка экспорта: ' + err.message);
-            }
-        }
-
-        async function importBackup(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            if (!confirm('Импортировать данные из файла? Существующие данные не будут удалены, только добавлены новые.')) {
-                event.target.value = '';
-                return;
-            }
-            
-            try {
-                const text = await file.text();
-                const data = JSON.parse(text);
-                
-                if (!data.users || !data.entries) {
-                    throw new Error('Неверный формат файла');
-                }
-                
-                const result = await api('/api/backup/import', {
-                    method: 'POST',
-                    body: JSON.stringify(data)
-                });
-                
-                alert(`Импорт завершён!\nПользователей: ${result.usersImported}\nЗаписей: ${result.entriesImported}`);
-                
-                // Обновляем данные
-                await loadUsers();
-                await loadEntries();
-                await loadWeeklyChart();
-                await loadDaySummary();
-            } catch (err) {
-                alert('Ошибка импорта: ' + err.message);
-            }
-            
-            event.target.value = '';
-        }
     </script>
 </body>
 </html>
